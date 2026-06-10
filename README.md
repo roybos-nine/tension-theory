@@ -1,3 +1,5 @@
+Tension Theory is a foundational framework and a collection of practical tools for analyzing physical, computational, social, and engineered systems through the concepts of tension, finite memory, local state, and constrained updates.
+
 Tension Theory proposes a single starting point:
 
 The universe is not made of objects.
