@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tension Theory — A Theory of Everything</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Spectral:ital,wght@0,300;0,400;1,300;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="./tension-sim.js"></script>
+<style>
+  :root { --accent: #ff5c33; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: #0b0c0e; color: #e8e6e1; font-family: 'Spectral', Georgia, serif; -webkit-font-smoothing: antialiased; }
+  a { color: #ff5c33; text-decoration: none; }
+  a:hover { color: #ff8a66; }
+  ::selection { background: #ff5c33; color: #0b0c0e; }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: translateY(0); } }
+
+  .nav-link { color: #9a978f; transition: color .15s ease; }
+  .nav-link:hover { color: #e8e6e1; }
+
+  .btn-primary { display: inline-flex; align-items: center; gap: 10px; background: var(--accent); color: #0b0c0e; font-family: 'Space Grotesk', sans-serif; font-weight: 600; font-size: 16px; padding: 15px 28px; transition: background .15s ease; }
+  .btn-primary:hover { background: #e8e6e1; }
+
+  .btn-outline { display: inline-flex; align-items: center; gap: 10px; border: 1px solid #3a3a38; color: #e8e6e1; font-family: 'Space Grotesk', sans-serif; font-weight: 500; font-size: 16px; padding: 15px 28px; transition: border-color .15s ease; }
+  .btn-outline:hover { border-color: #e8e6e1; }
+
+  .postulate-card { background: #101114; padding: 32px 28px; transition: background .15s ease; }
+  .postulate-card:hover { background: #15161a; }
+
+  .footer-link { color: #6b6963; transition: color .15s ease; }
+  .footer-link:hover { color: #e8e6e1; }
+</style>
+</head>
+<body>
+
+<div style="min-height:100vh; background:#0b0c0e;">
+
+  <!-- ============ HERO ============ -->
+  <header style="position:relative; min-height:100vh; display:flex; flex-direction:column; overflow:hidden;">
+    <div style="position:absolute; inset:0; opacity:0.85;">
+      <tension-sim accent="#ff5c33" density="1" style="width:100%; height:100%;"></tension-sim>
+    </div>
+    <div style="position:absolute; inset:0; background:radial-gradient(ellipse at 50% 60%, rgba(11,12,14,0.2) 0%, rgba(11,12,14,0.82) 75%); pointer-events:none;"></div>
+
+    <nav style="position:relative; z-index:2; display:flex; align-items:center; justify-content:space-between; padding:28px 48px; font-family:'IBM Plex Mono', monospace; font-size:13px;">
+      <div style="display:flex; align-items:center; gap:10px; letter-spacing:0.08em; color:#e8e6e1;">
+        <span style="display:inline-block; width:9px; height:9px; background:var(--accent);"></span>
+        TENSION THEORY
+      </div>
+      <div style="display:flex; gap:28px; letter-spacing:0.05em;">
+        <a href="#idea" class="nav-link">Idea</a>
+        <a href="#rules" class="nav-link">Rules</a>
+        <a href="#emergence" class="nav-link">Emergence</a>
+        <a href="#predictions" class="nav-link">Predictions</a>
+        <a href="uploads/Tension_Theory_v0.1.pdf" target="_blank" style="color:var(--accent);">Paper ↗</a>
+      </div>
+    </nav>
+
+    <div style="position:relative; z-index:2; flex:1; display:flex; flex-direction:column; justify-content:center; padding:0 48px; max-width:1100px; margin:0 auto; width:100%; box-sizing:border-box;">
+      <div style="font-family:'IBM Plex Mono', monospace; font-size:13px; letter-spacing:0.14em; color:var(--accent); margin-bottom:24px; animation:fadeUp 0.9s ease both;">A CANDIDATE THEORY OF EVERYTHING · v0.1</div>
+      <h1 style="font-family:'Space Grotesk', sans-serif; font-size:clamp(52px, 8.5vw, 118px); font-weight:600; line-height:0.98; letter-spacing:-0.03em; margin:0 0 32px; animation:fadeUp 0.9s 0.1s ease both;">Reality is<br>tension, resolving.</h1>
+      <p style="font-size:clamp(19px, 2vw, 24px); font-weight:300; line-height:1.55; color:#b8b5ad; max-width:620px; margin:0 0 44px; animation:fadeUp 0.9s 0.2s ease both;">A minimal framework in which the universe is a finite-memory system updating itself, one local step at a time — and time, space, particles, and observation are what that process looks like from the inside.</p>
+      <div style="display:flex; gap:16px; flex-wrap:wrap; animation:fadeUp 0.9s 0.3s ease both;">
+        <a href="uploads/Tension_Theory_v0.1.pdf" target="_blank" class="btn-primary">Read the paper (PDF)</a>
+        <a href="https://github.com/roybos-nine/tension-theory" target="_blank" class="btn-outline">GitHub</a>
+      </div>
+    </div>
+
+    <div style="position:relative; z-index:2; padding:24px 48px; display:flex; justify-content:space-between; font-family:'IBM Plex Mono', monospace; font-size:12px; color:#6b6963; letter-spacing:0.06em;">
+      <span>↑ LIVE — a graph of finite-state nodes resolving tension locally</span>
+      <span>SCROLL ↓</span>
+    </div>
+  </header>
+
+  <!-- ============ THE IDEA ============ -->
+  <section id="idea" style="max-width:1100px; margin:0 auto; padding:140px 48px 100px;">
+    <div style="display:grid; grid-template-columns:220px 1fr; gap:48px;">
+      <div style="font-family:'IBM Plex Mono', monospace; font-size:13px; letter-spacing:0.14em; color:var(--accent);">01 — THE IDEA</div>
+      <div>
+        <h2 style="font-family:'Space Grotesk', sans-serif; font-size:clamp(34px, 4vw, 52px); font-weight:600; line-height:1.1; letter-spacing:-0.02em; margin:0 0 36px;">Physics describes what happens. This asks how reality <em style="color:var(--accent); font-style:normal;">runs</em>.</h2>
+        <div style="font-size:20px; font-weight:300; line-height:1.7; color:#b8b5ad; display:flex; flex-direction:column; gap:24px;">
+          <p style="margin:0;">Our best theories use infinite-precision fields, continuous space-time, and global wave functions. They predict beautifully — but they say nothing about the <em>mechanism</em> by which the universe updates itself, and they quietly assume unlimited memory and zero-cost change.</p>
+          <p style="margin:0;">Tension Theory starts from the opposite end: any system that evolves must store state, update it locally, and pay a cost to do so. The single primitive is <strong style="color:#e8e6e1; font-weight:400; border-bottom:1px solid var(--accent);">tension</strong> — the constrained informational difference between neighboring states. Tension is both the pressure to change and the price of changing.</p>
+          <p style="margin:0;">Everything else — time, space, causality, particles, fields, probability, even measurement — falls out as what a finite, local, tension-driven system inevitably looks like from within.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ RULES / POSTULATES ============ -->
+  <section id="rules" style="background:#101114; border-top:1px solid #1e1f22; border-bottom:1px solid #1e1f22;">
+    <div style="max-width:1100px; margin:0 auto; padding:120px 48px;">
+      <div style="display:grid; grid-template-columns:220px 1fr; gap:48px; margin-bottom:64px;">
+        <div style="font-family:'IBM Plex Mono', monospace; font-size:13px; letter-spacing:0.14em; color:var(--accent);">02 — THE RULES</div>
+        <div>
+          <h2 style="font-family:'Space Grotesk', sans-serif; font-size:clamp(34px, 4vw, 52px); font-weight:600; line-height:1.1; letter-spacing:-0.02em; margin:0 0 20px;">Ten postulates. Nothing else.</h2>
+          <p style="font-size:19px; font-weight:300; line-height:1.65; color:#b8b5ad; margin:0; max-width:600px;">The whole theory rests on these assumptions — finite memory, local interaction, costly change. No continuity, probability, or geometry is put in by hand.</p>
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:1px; background:#1e1f22; border:1px solid #1e1f22;">
+        <div class="postulate-card">
+          <div style="display:flex; align-items:baseline; gap:14px; margin-bottom:12px;">
+            <span style="font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--accent);">P1</span>
+            <span style="font-family:'Space Grotesk', sans-serif; font-size:19px; font-weight:600; color:#e8e6e1;">Finite Memory</span>
+          </div>
+          <p style="margin:0; font-size:16px; font-weight:300; line-height:1.6; color:#9a978f;">Any evolving system has finite capacity to store state. No lossless or infinite memory exists.</p>
+        </div>
+        <div class="postulate-card">
+          <div style="display:flex; align-items:baseline; gap:14px; margin-bottom:12px;">
+            <span style="font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--accent);">P2</span>
+            <span style="font-family:'Space Grotesk', sans-serif; font-size:19px; font-weight:600; color:#e8e6e1;">Local State</span>
+          </div>
+          <p style="margin:0; font-size:16px; font-weight:300; line-height:1.6; color:#9a978f;">State is defined locally. A system sees only adjacent or coupled states, never a global configuration.</p>
+        </div>
+        <div class="postulate-card">
+          <div style="display:flex; align-items:baseline; gap:14px; margin-bottom:12px;">
+            <span style="font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--accent);">P3</span>
+            <span style="font-family:'Space Grotesk', sans-serif; font-size:19px; font-weight:600; color:#e8e6e1;">Cost of Update</span>
+          </div>
+          <p style="margin:0; font-size:16px; font-weight:300; line-height:1.6; color:#9a978f;">Every state transition has a non-zero informational cost, expressed as tension. Zero-cost change is impossible.</p>
+        </div>
+        <div class="postulate-card">
+          <div style="display:flex; align-items:baseline; gap:14px; margin-bottom:12px;">
+            <span style="font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--accent);">P4</span>
+            <span style="font-family:'Space Grotesk', sans-serif; font-size:19px; font-weight:600; color:#e8e6e1;">Tension as Primitive</span>
+          </div>
+          <p style="margin:0; font-size:16px; font-weight:300; line-height:1.6; color:#9a978f;">Tension — constrained informational difference between states — is the fundamental quantity governing evolution.</p>
+        </div>
+        <div class="postulate-card">
+          <div style="display:flex; align-items:baseline; gap:14px; margin-bottom:12px;">
+            <span style="font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--accent);">P5</span>
+            <span style="font-family:'Space Grotesk', sans-serif; font-size:19px; font-weight:600; color:#e8e6e1;">Discrete Updates</span>
+          </div>
+          <p style="margin:0; font-size:16px; font-weight:300; line-height:1.6; color:#9a978f;">All evolution occurs in discrete steps. Continuity is an emergent approximation.</p>
+        </div>
+        <div class="postulate-card">
+          <div style="display:flex; align-items:baseline; gap:14px; margin-bottom:12px;">
+            <span style="font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--accent);">P6</span>
+            <span style="font-family:'Space Grotesk', sans-serif; font-size:19px; font-weight:600; color:#e8e6e1;">Irreversibility</span>
+          </div>
+          <p style="margin:0; font-size:16px; font-weight:300; line-height:1.6; color:#9a978f;">Updates are generally irreversible. Perfect reversal would require infinite memory.</p>
+        </div>
+        <div class="postulate-card">
+          <div style="display:flex; align-items:baseline; gap:14px; margin-bottom:12px;">
+            <span style="font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--accent);">P7</span>
+            <span style="font-family:'Space Grotesk', sans-serif; font-size:19px; font-weight:600; color:#e8e6e1;">Relational Structure</span>
+          </div>
+          <p style="margin:0; font-size:16px; font-weight:300; line-height:1.6; color:#9a978f;">No absolute space or background geometry. Structure arises from relations between states.</p>
+        </div>
+        <div class="postulate-card">
+          <div style="display:flex; align-items:baseline; gap:14px; margin-bottom:12px;">
+            <span style="font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--accent);">P8</span>
+            <span style="font-family:'Space Grotesk', sans-serif; font-size:19px; font-weight:600; color:#e8e6e1;">Emergent Time</span>
+          </div>
+          <p style="margin:0; font-size:16px; font-weight:300; line-height:1.6; color:#9a978f;">Time is not fundamental — it is the ordering of irreversible updates under memory constraints.</p>
+        </div>
+        <div class="postulate-card">
+          <div style="display:flex; align-items:baseline; gap:14px; margin-bottom:12px;">
+            <span style="font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--accent);">P9</span>
+            <span style="font-family:'Space Grotesk', sans-serif; font-size:19px; font-weight:600; color:#e8e6e1;">Observation as Coupling</span>
+          </div>
+          <p style="margin:0; font-size:16px; font-weight:300; line-height:1.6; color:#9a978f;">Observation is a physical interaction that redistributes tension. No external observer, no special measurement rule.</p>
+        </div>
+        <div class="postulate-card">
+          <div style="display:flex; align-items:baseline; gap:14px; margin-bottom:12px;">
+            <span style="font-family:'IBM Plex Mono', monospace; font-size:12px; color:var(--accent);">P10</span>
+            <span style="font-family:'Space Grotesk', sans-serif; font-size:19px; font-weight:600; color:#e8e6e1;">Stability via Constraint</span>
+          </div>
+          <p style="margin:0; font-size:16px; font-weight:300; line-height:1.6; color:#9a978f;">Persistent forms are configurations where tension gradients locally balance. Instability is unresolved tension.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ EMERGENCE ============ -->
+  <section id="emergence" style="max-width:1100px; margin:0 auto; padding:140px 48px;">
+    <div style="display:grid; grid-template-columns:220px 1fr; gap:48px; margin-bottom:72px;">
+      <div style="font-family:'IBM Plex Mono', monospace; font-size:13px; letter-spacing:0.14em; color:var(--accent);">03 — EMERGENCE</div>
+      <div>
+        <h2 style="font-family:'Space Grotesk', sans-serif; font-size:clamp(34px, 4vw, 52px); font-weight:600; line-height:1.1; letter-spacing:-0.02em; margin:0 0 20px;">Nothing fundamental is added. Familiar physics falls out.</h2>
+        <p style="font-size:19px; font-weight:300; line-height:1.65; color:#b8b5ad; margin:0; max-width:600px;">Seven things we usually treat as primitives turn out to be regularities of the update process.</p>
+      </div>
+    </div>
+    <div style="display:flex; flex-direction:column;">
+      <div style="display:grid; grid-template-columns:220px 260px 1fr; gap:48px; padding:36px 0; border-top:1px solid #1e1f22; align-items:baseline;">
+        <div style="font-family:'Space Grotesk', sans-serif; font-size:26px; font-weight:600; color:#e8e6e1;">Time</div>
+        <div style="font-family:'IBM Plex Mono', monospace; font-size:14px; color:var(--accent); line-height:1.5;">= ordered irreversibility</div>
+        <p style="margin:0; font-size:17px; font-weight:300; line-height:1.65; color:#9a978f;">Updates cost, overwrite prior state, and cannot be undone — so the system acquires a natural arrow. Time is what accumulated, non-reversible change feels like.</p>
+      </div>
+      <div style="display:grid; grid-template-columns:220px 260px 1fr; gap:48px; padding:36px 0; border-top:1px solid #1e1f22; align-items:baseline;">
+        <div style="font-family:'Space Grotesk', sans-serif; font-size:26px; font-weight:600; color:#e8e6e1;">Space</div>
+        <div style="font-family:'IBM Plex Mono', monospace; font-size:14px; color:var(--accent); line-height:1.5;">= stable relational graph</div>
+        <p style="margin:0; font-size:17px; font-weight:300; line-height:1.65; color:#9a978f;">Nodes that keep stable, low-tension connections form neighborhoods. Distance is relational — counted in updates and propagation delay, not meters.</p>
+      </div>
+      <div style="display:grid; grid-template-columns:220px 260px 1fr; gap:48px; padding:36px 0; border-top:1px solid #1e1f22; align-items:baseline;">
+        <div style="font-family:'Space Grotesk', sans-serif; font-size:26px; font-weight:600; color:#e8e6e1;">Causality</div>
+        <div style="font-family:'IBM Plex Mono', monospace; font-size:14px; color:var(--accent); line-height:1.5;">= dependency under locality</div>
+        <p style="margin:0; font-size:17px; font-weight:300; line-height:1.65; color:#9a978f;">A state causes another only through adjacency, a tension gradient, and an update that depends on it. No action at a distance — apparent non-locality is stored correlation.</p>
+      </div>
+      <div style="display:grid; grid-template-columns:220px 260px 1fr; gap:48px; padding:36px 0; border-top:1px solid #1e1f22; align-items:baseline;">
+        <div style="font-family:'Space Grotesk', sans-serif; font-size:26px; font-weight:600; color:#e8e6e1;">Particles</div>
+        <div style="font-family:'IBM Plex Mono', monospace; font-size:14px; color:var(--accent); line-height:1.5;">= stable tension loops</div>
+        <p style="margin:0; font-size:17px; font-weight:300; line-height:1.65; color:#9a978f;">Localized configurations that circulate tension internally and resist dispersion. Identity is a maintained pattern, not a substance. Creation and annihilation are formation and collapse.</p>
+      </div>
+      <div style="display:grid; grid-template-columns:220px 260px 1fr; gap:48px; padding:36px 0; border-top:1px solid #1e1f22; align-items:baseline;">
+        <div style="font-family:'Space Grotesk', sans-serif; font-size:26px; font-weight:600; color:#e8e6e1;">Fields</div>
+        <div style="font-family:'IBM Plex Mono', monospace; font-size:14px; color:var(--accent); line-height:1.5;">= large-scale tension gradients</div>
+        <p style="margin:0; font-size:17px; font-weight:300; line-height:1.65; color:#9a978f;">Not entities but statistical regularities: tension varying smoothly across many nodes. Field equations are coarse-grained descriptions of aggregate update dynamics.</p>
+      </div>
+      <div style="display:grid; grid-template-columns:220px 260px 1fr; gap:48px; padding:36px 0; border-top:1px solid #1e1f22; align-items:baseline;">
+        <div style="font-family:'Space Grotesk', sans-serif; font-size:26px; font-weight:600; color:#e8e6e1;">Probability</div>
+        <div style="font-family:'IBM Plex Mono', monospace; font-size:14px; color:var(--accent); line-height:1.5;">= incomplete local knowledge</div>
+        <p style="margin:0; font-size:17px; font-weight:300; line-height:1.65; color:#9a978f;">Finite memory and local access make full configurations unknowable. Randomness reflects information loss, not intrinsic indeterminism.</p>
+      </div>
+      <div style="display:grid; grid-template-columns:220px 260px 1fr; gap:48px; padding:36px 0; border-top:1px solid #1e1f22; align-items:baseline;">
+        <div style="font-family:'Space Grotesk', sans-serif; font-size:26px; font-weight:600; color:#e8e6e1;">Observation</div>
+        <div style="font-family:'IBM Plex Mono', monospace; font-size:14px; color:var(--accent); line-height:1.5;">= constrained coupling</div>
+        <p style="margin:0; font-size:17px; font-weight:300; line-height:1.65; color:#9a978f;">When observer and target interact, tension redistributes and both change; alternatives collapse because memory is overwritten. Collapse is just an update.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ PREDICTIONS ============ -->
+  <section id="predictions" style="background:#101114; border-top:1px solid #1e1f22; border-bottom:1px solid #1e1f22;">
+    <div style="max-width:1100px; margin:0 auto; padding:120px 48px;">
+      <div style="display:grid; grid-template-columns:220px 1fr; gap:48px; margin-bottom:64px;">
+        <div style="font-family:'IBM Plex Mono', monospace; font-size:13px; letter-spacing:0.14em; color:var(--accent);">04 — PREDICTIONS</div>
+        <div>
+          <h2 style="font-family:'Space Grotesk', sans-serif; font-size:clamp(34px, 4vw, 52px); font-weight:600; line-height:1.1; letter-spacing:-0.02em; margin:0 0 20px;">Where it could break.</h2>
+          <p style="font-size:19px; font-weight:300; line-height:1.65; color:#b8b5ad; margin:0; max-width:600px;">The framework is falsifiable in principle. If any of these fail, the theory fails.</p>
+        </div>
+      </div>
+      <div style="display:flex; flex-direction:column; max-width:820px; margin-left:auto;">
+        <div style="display:flex; gap:28px; padding:28px 0; border-top:1px solid #1e1f22;">
+          <span style="font-family:'IBM Plex Mono', monospace; font-size:13px; color:var(--accent); padding-top:4px; flex-shrink:0;">P1</span>
+          <div>
+            <div style="font-family:'Space Grotesk', sans-serif; font-size:20px; font-weight:600; margin-bottom:8px; color:#e8e6e1;">No perfect reversibility</div>
+            <p style="margin:0; font-size:17px; font-weight:300; line-height:1.65; color:#9a978f;">Fundamental lower bounds on reversibility beyond standard thermodynamics, observable in sufficiently isolated, high-precision systems.</p>
+          </div>
+        </div>
+        <div style="display:flex; gap:28px; padding:28px 0; border-top:1px solid #1e1f22;">
+          <span style="font-family:'IBM Plex Mono', monospace; font-size:13px; color:var(--accent); padding-top:4px; flex-shrink:0;">P2</span>
+          <div>
+            <div style="font-family:'Space Grotesk', sans-serif; font-size:20px; font-weight:600; margin-bottom:8px; color:#e8e6e1;">All influence is local</div>
+            <p style="margin:0; font-size:17px; font-weight:300; line-height:1.65; color:#9a978f;">No experiment can use entanglement to transmit information without a mediating interaction history — even in principle.</p>
+          </div>
+        </div>
+        <div style="display:flex; gap:28px; padding:28px 0; border-top:1px solid #1e1f22;">
+          <span style="font-family:'IBM Plex Mono', monospace; font-size:13px; color:var(--accent); padding-top:4px; flex-shrink:0;">P3</span>
+          <div>
+            <div style="font-family:'Space Grotesk', sans-serif; font-size:20px; font-weight:600; margin-bottom:8px; color:#e8e6e1;">Memory-limited precision</div>
+            <p style="margin:0; font-size:17px; font-weight:300; line-height:1.65; color:#9a978f;">At small enough scales or long enough durations, physical constants show discretization or drift consistent with bounded state representation.</p>
+          </div>
+        </div>
+        <div style="display:flex; gap:28px; padding:28px 0; border-top:1px solid #1e1f22;">
+          <span style="font-family:'IBM Plex Mono', monospace; font-size:13px; color:var(--accent); padding-top:4px; flex-shrink:0;">P4</span>
+          <div>
+            <div style="font-family:'Space Grotesk', sans-serif; font-size:20px; font-weight:600; margin-bottom:8px; color:#e8e6e1;">Observation has a cost</div>
+            <p style="margin:0; font-size:17px; font-weight:300; line-height:1.65; color:#9a978f;">Regimes exist where measurement back-action exceeds standard quantum limits — driven by memory overwrite, not uncertainty relations.</p>
+          </div>
+        </div>
+        <div style="display:flex; gap:28px; padding:28px 0; border-top:1px solid #1e1f22;">
+          <span style="font-family:'IBM Plex Mono', monospace; font-size:13px; color:var(--accent); padding-top:4px; flex-shrink:0;">P5</span>
+          <div>
+            <div style="font-family:'Space Grotesk', sans-serif; font-size:20px; font-weight:600; margin-bottom:8px; color:#e8e6e1;">Continuum models break</div>
+            <p style="margin:0; font-size:17px; font-weight:300; line-height:1.65; color:#9a978f;">When update granularity becomes comparable to system scale, continuum-based predictions deviate — without invoking quantum gravity.</p>
+          </div>
+        </div>
+        <div style="display:flex; gap:28px; padding:28px 0; border-top:1px solid #1e1f22;">
+          <span style="font-family:'IBM Plex Mono', monospace; font-size:13px; color:var(--accent); padding-top:4px; flex-shrink:0;">P6</span>
+          <div>
+            <div style="font-family:'Space Grotesk', sans-serif; font-size:20px; font-weight:600; margin-bottom:8px; color:#e8e6e1;">Everything is simulable</div>
+            <p style="margin:0; font-size:17px; font-weight:300; line-height:1.65; color:#9a978f;">No physically realizable process requires non-local or infinite-memory computation. The universe is executable.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ STATUS + CTA ============ -->
+  <section style="max-width:1100px; margin:0 auto; padding:140px 48px 120px; text-align:center;">
+    <div style="font-family:'IBM Plex Mono', monospace; font-size:13px; letter-spacing:0.14em; color:var(--accent); margin-bottom:28px;">05 — STATUS</div>
+    <h2 style="font-family:'Space Grotesk', sans-serif; font-size:clamp(34px, 4.5vw, 56px); font-weight:600; line-height:1.12; letter-spacing:-0.02em; margin:0 auto 28px; max-width:800px;">Incomplete by design. Built to be tested — and broken.</h2>
+    <p style="font-size:19px; font-weight:300; line-height:1.7; color:#b8b5ad; max-width:640px; margin:0 auto 48px;">v0.1 is structural, not quantitative. The tension function needs a concrete form, the mapping to known constants is open, and everything must ultimately survive simulation. That's the point: predictions come from running the model, not solving idealized equations.</p>
+    <div style="display:flex; gap:16px; justify-content:center; flex-wrap:wrap;">
+      <a href="uploads/Tension_Theory_v0.1.pdf" target="_blank" class="btn-primary">Download the paper</a>
+      <a href="https://github.com/roybos-nine/tension-theory" target="_blank" class="btn-outline">Follow on GitHub</a>
+      <a href="https://x.com/roybos_nine" target="_blank" class="btn-outline">@roybos_nine</a>
+    </div>
+  </section>
+
+  <!-- ============ FOOTER ============ -->
+  <footer style="border-top:1px solid #1e1f22;">
+    <div style="max-width:1100px; margin:0 auto; padding:36px 48px; display:flex; justify-content:space-between; flex-wrap:wrap; gap:16px; font-family:'IBM Plex Mono', monospace; font-size:12px; color:#6b6963; letter-spacing:0.04em;">
+      <span>Tension Theory — The Theory of Everything (v0.1) · © 2026 Roybos Nine</span>
+      <span><a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" class="footer-link">CC BY 4.0</a></span>
+    </div>
+  </footer>
+
+</div>
+
+</body>
+</html>
