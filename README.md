@@ -1,3 +1,6 @@
+<img width="2492" height="156" alt="Tension Theory Identity-selection (4)" src="https://github.com/user-attachments/assets/b94022ad-1caa-4841-b403-adaee9e0e8c0" />
+
+
 Tension Theory proposes a single starting point:
 
 The universe is not made of objects.
