@@ -56,29 +56,47 @@ The entire framework rests on ten postulates and nothing else — no assumptions
 9. **Observation as Coupling** — no external observer, no special measurement rule.
 10. **Stability via Constraint** — persistent forms are configurations where gradients locally balance.
 
-Full definitions and formal treatment are in the paper (sections 2–4).
-
 ## What this is not
 
 **Not metaphor.** The objective is formalization. If the model is wrong, it should fail mathematically. If it is correct, it should produce testable differences from existing frameworks. Validity here means executable prediction, not elegance.
 
-**Not a cellular automaton.** CAs run fixed rules on a fixed lattice with a global clock. TT graphs have dynamic, cost-aware topology, no global tape, and no global synchronization requirement (paper section 6.4).
+**Not a cellular automaton.** CAs run fixed rules on a fixed lattice with a global clock. TT graphs have dynamic, cost-aware topology, no global tape, and no global synchronization requirement.
 
 **Not finished.** Version 0.1 establishes structural emergence. The quantitative mapping to known physics is the open program, and the line between the two is kept explicit throughout.
 
 ## Simulator
 
-A minimal reference implementation of the TT update cycle lives in `scripts/tension_graph.py`. It enforces the framework's constraints as code-level invariants: finite memory per node, non-zero cost per update, no global reads or writes inside update logic, bounded fan-out. The update cycle is strictly local: Read → Evaluate → Decide → Apply → Propagate.
+`scripts/tension_graph.py` is not in this repository. The lattice rule from the author's Notion note *Tension Game of Life v0.1* (status: Idea) is implemented in `sim/`.
 
-Observables are coarse-grained patterns only: persistent subgraphs, stable tension distributions, propagation delays, update frequencies. The headline result to chase is the detection of a persistent subgraph — a particle.
+```bash
+python -m sim --seed 0
+python -m sim.figure
+```
 
-**First experimental observation:** update ordering changes the character of emergent structure. Synchronous node ordering produces oscillating "breathing forms"; asynchronous ordering produces frozen stable structures. This is itself a result about how emergent dynamics depend on update scheduling.
+`python -m sim --seed 0` writes a CSV of mean tension, mean of `T`, and std of `T` at each step, plus PNGs of the final grid and of mean tension against step. Parameters, including choices the note does not specify, are in `docs/PARAMETERS.md`.
 
-Roadmap: minimal Python prototype → measurable emergence thresholds → real-time generative web-based visualization.
+## Result of rule v0.1
+
+This is a property of this rule, not a physical prediction.
+
+The note's linear response `f(Δ) = Δ`, with `α = 0.2` on a 100×100 periodic Moore grid and a uniform initial field, homogenizes the grid. Mean tension — the mean of `|T_i − T_j|` over Moore neighbour pairs — falls by about three orders of magnitude in 1000 steps, and the final field is nearly flat. Synchronous updates and asynchronous random-order sweeps do the same thing. The asynchronous sweep reduces mean tension a little faster. Neither run produces oscillating forms or frozen spatial structure.
+
+Mean tension for linear `f`:
+
+| run | t = 0 | t = 100 | t = 1000 |
+|---|---:|---:|---:|
+| sync, seed 0 | 0.336934 | 0.003639 | 0.000399 |
+| sync, seed 1 | 0.334166 | 0.003578 | 0.000451 |
+| async, seed 0 | 0.336934 | 0.003307 | 0.000354 |
+| async, seed 1 | 0.334166 | 0.003244 | 0.000407 |
+
+Seed 0, synchronous: std of `T` goes from 0.2891 to 0.005673, and the mean of `T` stays 0.499411. The figure below is the same four runs on log-log axes.
+
+![Mean tension vs step, sync and async, seeds 0 and 1](docs/figures/mean_tension_sync_vs_async.png)
 
 ## Open problems
 
-The paper is explicit about what is unsolved (section 10). In priority order:
+In priority order:
 
 1. **Formal specification of τ.** The tension function must be local, respect finite memory, and reproduce known limits when coarse-grained. Any candidate must pass all three conditions and run in the reference implementation before being considered serious.
 2. **Quantitative, falsifiable predictions.** Structural emergence is established; numbers are not. This is the standard the framework holds itself to.
@@ -87,7 +105,7 @@ The paper is explicit about what is unsolved (section 10). In priority order:
 
 ## Interpretive extensions (beyond the v0.1 core)
 
-The following are directions the framework points toward, clearly separated from what the paper formally claims:
+The following are directions beyond the statements above:
 
 - **Quantum uncertainty** as underconstrained relational states prior to stabilization.
 - **Black holes** as extreme relational compression limiting outward propagation of structure.
@@ -97,11 +115,12 @@ These are conceptual, not derived. They become claims only when they produce cal
 
 ## Repository contents
 
-- `paper/` — Tension Theory v0.1 (also on [Zenodo](https://doi.org/10.5281/zenodo.20420283))
-- `diagrams/` — structural diagrams of the framework
-- `scripts/` — reference simulator and experiments
-- `docs/` — postulates, definitions, formal model notes
-- `problems/` — open problems and current research state
+- `sim/` — lattice rule from the Notion note *Tension Game of Life v0.1*
+- `docs/PARAMETERS.md` — parameters of that rule, including choices the note does not specify
+- `docs/figures/mean_tension_sync_vs_async.png` — mean tension, sync vs async, seeds 0 and 1
+- `tests/` — pytest suite
+- `index.html` — bundled site
+- `Tension_Theory_The_Theory_of_Everything_-_Paper_v0.1.pdf` — PDF file stored in the repo
 
 ## Contributing
 
