@@ -352,7 +352,10 @@ def spectral_length(T: np.ndarray) -> float:
     formula; this is the definition used here. A constant field has no
     scale and returns NaN. A pure cosine of wavelength L returns L. The
     stripe (−1)^y on an even height returns 2. A flat spectrum sits near
-    √6. Domain walls do not make this a domain size; see
+    √6. An isolated domain wall is neither the lattice scale nor the
+    domain scale: the Porod tail puts the length near the geometric mean
+    of those scales, √(L a). With L proportional to N and a one cell, that
+    grows as √N (about 10.69 on 32×32 and 21.35 on 128×128). See
     ``docs/PARAMETERS.md``.
     """
 
