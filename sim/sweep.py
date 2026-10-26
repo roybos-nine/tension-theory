@@ -22,6 +22,8 @@ import matplotlib
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+import numpy as np
+from matplotlib.ticker import FixedLocator, NullFormatter
 
 from sim.rule import F_LINEAR, F_TANH, MODE_ASYNC, MODE_SYNC, SYNC_EVEN_GRID_ALPHA_LIMIT, run
 
@@ -35,6 +37,11 @@ SEEDS = (0, 1)
 
 SYNC_COLOR = {0: "#0072B2", 1: "#56B4E9"}
 ASYNC_COLOR = {0: "#D55E00", 1: "#E69F00"}
+# The α = 0.2, vary-k family is synchronous. It must not reuse the async orange.
+VARY_K_COLOR = {0: "#009E73", 1: "#CC79A7"}
+# Unclamped linear async energy is marginal at this step. See PARAMETERS.md.
+ASYNC_ALPHA_MARK = 2.0
+ALPHA_TICKS = (0.2, 0.5, 1.0, 2.0)
 
 
 def _measure(spec: tuple[int, float, str, str, float]) -> dict[str, float | int | str]:
@@ -85,8 +92,55 @@ def _select(rows: list[dict], **wanted: object) -> list[dict]:
     return sorted(chosen, key=lambda row: float(row["alpha"] if "alpha" in wanted else row["ak"]))
 
 
+def _mask_nonpositive(values) -> np.ndarray:
+    """Hide y ≤ 0 on a log axis.
+
+    Exact zeros are omitted. They are not plotted at ``1e-16``. A positive
+    value smaller than that floor is kept.
+    """
+
+    masked = np.asarray(list(values), dtype=np.float64).copy()
+    masked[~(np.isfinite(masked) & (masked > 0.0))] = np.nan
+    return masked
+
+
+def _mark_thresholds(ax, *, async_panel: bool) -> None:
+    """Dotted line at α = 4/3. Dash-dot line at α = 2 on async panels."""
+
+    ax.axvline(
+        SYNC_EVEN_GRID_ALPHA_LIMIT,
+        color="#666666",
+        linewidth=0.8,
+        linestyle=":",
+        label="alpha = 4/3",
+    )
+    if async_panel:
+        ax.axvline(
+            ASYNC_ALPHA_MARK,
+            color="#222222",
+            linewidth=0.9,
+            linestyle="-.",
+            label="alpha = 2",
+        )
+
+
+def _style_axis(ax, *, log_x: bool) -> None:
+    """Major ticks only, at a few plain labels, so neighbours do not collide."""
+
+    ax.xaxis.set_minor_formatter(NullFormatter())
+    ax.yaxis.set_minor_formatter(NullFormatter())
+    ax.tick_params(axis="both", which="minor", labelleft=False, labelbottom=False, length=2.5)
+    ax.tick_params(axis="both", which="major", labelsize=8, pad=2)
+    if log_x:
+        ax.xaxis.set_major_locator(FixedLocator(ALPHA_TICKS))
+        ax.set_xticks(list(ALPHA_TICKS))
+        ax.set_xticklabels([f"{tick:g}" for tick in ALPHA_TICKS])
+    ax.grid(True, which="major", alpha=0.3)
+    ax.legend(frameon=False, fontsize=7, loc="best", labelspacing=0.25, borderpad=0.2)
+
+
 def _draw(rows: list[dict], path: Path) -> None:
-    fig, axes = plt.subplots(2, 2, figsize=(10.2, 7.4))
+    fig, axes = plt.subplots(2, 2, figsize=(12.0, 8.6), layout="constrained")
 
     ax = axes[0, 0]
     for mode, palette in ((MODE_SYNC, SYNC_COLOR), (MODE_ASYNC, ASYNC_COLOR)):
@@ -94,7 +148,7 @@ def _draw(rows: list[dict], path: Path) -> None:
             series = _select(rows, f=F_LINEAR, mode=mode, seed=seed, k=1.0)
             ax.loglog(
                 [row["alpha"] for row in series],
-                [row["tension"] for row in series],
+                _mask_nonpositive([row["tension"] for row in series]),
                 color=palette[seed],
                 linestyle="-" if seed == 0 else "--",
                 marker="o",
@@ -102,79 +156,87 @@ def _draw(rows: list[dict], path: Path) -> None:
                 linewidth=1.4,
                 label=f"{mode}, seed {seed}",
             )
-    ax.axvline(SYNC_EVEN_GRID_ALPHA_LIMIT, color="#666666", linewidth=0.8, linestyle=":")
+    _mark_thresholds(ax, async_panel=True)
     ax.set_xlabel("alpha")
     ax.set_ylabel("mean tension at step 1000")
     ax.set_title("linear f")
-    ax.legend(frameon=False, fontsize=8)
-    ax.grid(True, which="both", alpha=0.3)
+    _style_axis(ax, log_x=True)
 
     ax = axes[0, 1]
     for mode, palette in ((MODE_SYNC, SYNC_COLOR), (MODE_ASYNC, ASYNC_COLOR)):
         series = _select(rows, f=F_LINEAR, mode=mode, seed=0, k=1.0)
         ax.semilogy(
             [row["alpha"] for row in series],
-            [max(float(row["d1"]), 1e-16) for row in series],
+            _mask_nonpositive([row["d1"] for row in series]),
             color=palette[0],
             linestyle="-",
             marker="o",
             markersize=3.5,
-            label=f"{mode} |T(t)-T(t-1)|",
+            label=f"{mode} |d1|",
         )
         ax.semilogy(
             [row["alpha"] for row in series],
-            [max(float(row["d2"]), 1e-16) for row in series],
+            _mask_nonpositive([row["d2"] for row in series]),
             color=palette[0],
             linestyle=":",
             marker="s",
             markersize=3.5,
-            label=f"{mode} |T(t)-T(t-2)|",
+            label=f"{mode} |d2|",
         )
-    ax.axvline(SYNC_EVEN_GRID_ALPHA_LIMIT, color="#666666", linewidth=0.8, linestyle=":")
+    _mark_thresholds(ax, async_panel=True)
     ax.set_xlabel("alpha")
     ax.set_ylabel("mean absolute field change at step 1000")
-    ax.set_title("linear f, seed 0 (dotted lag is two steps)")
-    ax.legend(frameon=False, fontsize=7)
-    ax.grid(True, which="both", alpha=0.3)
+    ax.set_title("linear f, seed 0 (dotted marker is the two-step lag)")
+    _style_axis(ax, log_x=False)
 
     ax = axes[1, 0]
     for seed, marker in ((0, "o"), (1, "s")):
         vary_alpha = _select(rows, f=F_TANH, mode=MODE_SYNC, seed=seed, k=1.0)
         ax.loglog(
             [row["ak"] for row in vary_alpha],
-            [row["tension"] for row in vary_alpha],
+            _mask_nonpositive([row["tension"] for row in vary_alpha]),
             color=SYNC_COLOR[seed],
             linestyle="-",
             marker=marker,
             markersize=3.5,
-            label=f"sync k=1, seed {seed}",
+            label=f"sync, vary alpha, k=1, seed {seed}",
         )
-        vary_k = [row for row in rows if row["f"] == F_TANH and row["mode"] == MODE_SYNC and row["seed"] == seed and row["alpha"] == 0.2]
+        vary_k = [
+            row
+            for row in rows
+            if row["f"] == F_TANH
+            and row["mode"] == MODE_SYNC
+            and row["seed"] == seed
+            and row["alpha"] == 0.2
+        ]
         vary_k = sorted(vary_k, key=lambda row: float(row["ak"]))
         ax.loglog(
             [row["ak"] for row in vary_k],
-            [row["tension"] for row in vary_k],
-            color=ASYNC_COLOR[seed],
+            _mask_nonpositive([row["tension"] for row in vary_k]),
+            color=VARY_K_COLOR[seed],
             linestyle="--",
             marker=marker,
             markersize=3.5,
-            label=f"sync alpha=0.2, seed {seed}",
+            label=f"sync, vary k, alpha=0.2, seed {seed}",
         )
-    ax.axvline(SYNC_EVEN_GRID_ALPHA_LIMIT, color="#666666", linewidth=0.8, linestyle=":")
+    _mark_thresholds(ax, async_panel=False)
     ax.set_xlabel("alpha * k")
     ax.set_ylabel("mean tension at step 1000")
-    ax.set_title("tanh f, synchronous")
-    ax.legend(frameon=False, fontsize=7)
-    ax.grid(True, which="both", alpha=0.3)
+    ax.set_title("tanh f, synchronous (green/purple vary k)")
+    _style_axis(ax, log_x=True)
 
     ax = axes[1, 1]
     async_tanh = sorted(
-        [row for row in rows if row["f"] == F_TANH and row["mode"] == MODE_ASYNC and row["seed"] == 0 and row["k"] == 1.0],
+        [
+            row
+            for row in rows
+            if row["f"] == F_TANH and row["mode"] == MODE_ASYNC and row["seed"] == 0 and row["k"] == 1.0
+        ],
         key=lambda row: float(row["alpha"]),
     )
     ax.semilogy(
         [row["alpha"] for row in async_tanh],
-        [max(float(row["tension"]), 1e-16) for row in async_tanh],
+        _mask_nonpositive([row["tension"] for row in async_tanh]),
         color=ASYNC_COLOR[0],
         marker="o",
         markersize=3.5,
@@ -183,28 +245,28 @@ def _draw(rows: list[dict], path: Path) -> None:
     sync_tanh = _select(rows, f=F_TANH, mode=MODE_SYNC, seed=0, k=1.0)
     ax.semilogy(
         [row["alpha"] for row in sync_tanh],
-        [max(float(row["d2"]), 1e-16) for row in sync_tanh],
+        _mask_nonpositive([row["d2"] for row in sync_tanh]),
         color=SYNC_COLOR[0],
         linestyle=":",
         marker="s",
         markersize=3.5,
-        label="sync |T(t)-T(t-2)|, k=1, seed 0",
+        label="sync |d2|, k=1, seed 0",
     )
-    ax.axvline(SYNC_EVEN_GRID_ALPHA_LIMIT, color="#666666", linewidth=0.8, linestyle=":")
+    _mark_thresholds(ax, async_panel=True)
     ax.set_xlabel("alpha  (k = 1, so alpha * k = alpha)")
     ax.set_ylabel("value at step 1000")
     ax.set_title("tanh f, seed 0")
-    ax.legend(frameon=False, fontsize=7)
-    ax.grid(True, which="both", alpha=0.3)
+    _style_axis(ax, log_x=False)
 
     fig.suptitle(
         "Rule v0.1 stability sweep, 100×100, 1000 steps, seeds 0 and 1\n"
-        "Dotted vertical line is α = 4/3. Period-2 above that line is a step-size artifact.",
-        fontsize=11,
+        "Dotted line: α = 4/3. Dash-dot line, on panels that include async: α = 2.\n"
+        "Non-positive values are omitted, not drawn at 1e-16. "
+        "Period-2 above 4/3 is a step-size artifact.",
+        fontsize=10,
     )
-    fig.tight_layout()
     path.parent.mkdir(parents=True, exist_ok=True)
-    fig.savefig(path, dpi=160)
+    fig.savefig(path, dpi=140)
     plt.close(fig)
 
 

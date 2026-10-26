@@ -123,7 +123,7 @@ def write_csv(path: Path, result: SimulationResult) -> None:
     """
 
     header = (
-        "step,mean_tension,mean_T,std_T,mean_abs_d1,mean_abs_d2,xi\n"
+        "step,mean_tension,mean_T,std_T,mean_abs_d1,mean_abs_d2,spectral_length\n"
     )
     lines = [header]
     for index in range(result.step.size):
@@ -134,7 +134,7 @@ def write_csv(path: Path, result: SimulationResult) -> None:
             f"{_format_float(result.std_T[index])},"
             f"{_format_float(result.mean_abs_d1[index])},"
             f"{_format_float(result.mean_abs_d2[index])},"
-            f"{_format_float(result.xi[index])}\n"
+            f"{_format_float(result.spectral_length[index])}\n"
         )
     path.write_text("".join(lines))
 

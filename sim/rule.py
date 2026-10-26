@@ -64,8 +64,8 @@ class SimulationResult:
     ``mean_abs_d1[t]`` is the mean of ``|T(t) − T(t−1)|`` over cells, and
     ``mean_abs_d2[t]`` is the mean of ``|T(t) − T(t−2)|``. Both are NaN
     until the lag exists. A period-2 oscillation has ``mean_abs_d2`` near 0
-    while ``mean_abs_d1`` stays large. ``xi`` is a length, in cells, from
-    the power spectrum; see ``correlation_length``.
+    while ``mean_abs_d1`` stays large. ``spectral_length`` is a length, in
+    cells, from the power spectrum; see ``spectral_length``.
     """
 
     grid: np.ndarray
@@ -75,7 +75,7 @@ class SimulationResult:
     std_T: np.ndarray
     mean_abs_d1: np.ndarray
     mean_abs_d2: np.ndarray
-    xi: np.ndarray
+    spectral_length: np.ndarray
     clamp_activations: int
 
 
@@ -141,7 +141,7 @@ def run(
     std_T = np.empty(steps + 1, dtype=np.float64)
     mean_abs_d1 = np.full(steps + 1, np.nan, dtype=np.float64)
     mean_abs_d2 = np.full(steps + 1, np.nan, dtype=np.float64)
-    xi = np.empty(steps + 1, dtype=np.float64)
+    lengths = np.empty(steps + 1, dtype=np.float64)
     clamps = 0
     previous = None
     previous2 = None
@@ -152,7 +152,7 @@ def run(
             mean_abs_d1[t] = float(np.mean(np.abs(field - previous)))
         if previous2 is not None:
             mean_abs_d2[t] = float(np.mean(np.abs(field - previous2)))
-        xi[t] = correlation_length(field)
+        lengths[t] = spectral_length(field)
         if t == steps:
             break
         # Copy before the update. Async steps edit the array in place.
@@ -172,7 +172,7 @@ def run(
         std_T=std_T,
         mean_abs_d1=mean_abs_d1,
         mean_abs_d2=mean_abs_d2,
-        xi=xi,
+        spectral_length=lengths,
         clamp_activations=clamps,
     )
 
@@ -310,6 +310,26 @@ def neighbor_mean(T: np.ndarray) -> np.ndarray:
     return total / 8.0
 
 
+def moore_pair_energy(T: np.ndarray) -> float:
+    """E = (1/16) Σ (T_i − T_j)² over undirected periodic Moore pairs.
+
+    The sum counts each pair once (``4 * W * H`` pairs). The factor
+    ``1/16`` is the normalization for which one unclamped linear cell
+    update, ``δ = α Δ``, changes E by ``−α (1 − α/2) Δ²``. E scales with
+    the grid; it is not a mean. Derivation in ``docs/PARAMETERS.md``.
+    """
+
+    field = np.asarray(T, dtype=np.float64)
+    if field.ndim != 2:
+        raise ValueError("T must have shape (W, H)")
+    total = 0.0
+    for dx, dy in PAIR_SHIFTS:
+        shifted = np.roll(np.roll(field, dx, axis=0), dy, axis=1)
+        diff = field - shifted
+        total += float(np.dot(diff.ravel(), diff.ravel()))
+    return total / 16.0
+
+
 def mean_tension(T: np.ndarray) -> float:
     """Mean ``|T_i − T_j|`` over undirected periodic Moore neighbour pairs."""
 
@@ -323,15 +343,17 @@ def mean_tension(T: np.ndarray) -> float:
     return total / (len(PAIR_SHIFTS) * field.size)
 
 
-def correlation_length(T: np.ndarray) -> float:
-    """Spectral length ξ = 2π / sqrt(⟨k²⟩_S), in cell units.
+def spectral_length(T: np.ndarray) -> float:
+    """Spectral length 2π / sqrt(⟨k²⟩_S), in cell units.
 
     S is the squared modulus of the FFT of the demeaned field. k is the
     angular wave number in radians per cell, and the average skips the
     zero mode. The review that asked for a spatial scale did not fix a
     formula; this is the definition used here. A constant field has no
     scale and returns NaN. A pure cosine of wavelength L returns L. The
-    stripe (−1)^y on an even height returns 2.
+    stripe (−1)^y on an even height returns 2. A flat spectrum sits near
+    √6. Domain walls do not make this a domain size; see
+    ``docs/PARAMETERS.md``.
     """
 
     field = np.asarray(T, dtype=np.float64)

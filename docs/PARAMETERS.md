@@ -48,9 +48,9 @@ land on the same cell, so the eight Moore terms are not eight distinct cells.
 
 These are fixed so the run is reproducible. They are not claims about the note.
 
-1. **`seed` is required.** The note draws a random initial field and names no seed and no generator. `run(seed, ...)` has no default seed. The command `python -m sim` refuses to start without `--seed`. The seed initializes `numpy.random.default_rng` (PCG64). The initial field is i.i.d. U[0, 1): `Generator.random((W, H))`, uniform on the half-open interval `[0, 1)`. The note does not say whether `1` can occur. This generator is what matches the rounded seed-0 field from a quick independent numpy check run by the Simulaciones agent (mean of `T` = 0.499411, std = 0.289). That check is not in this repo.
+1. **`seed` is required.** The note draws a random initial field and names no seed and no generator. `run(seed, ...)` has no default seed. The command `python -m sim` refuses to start without `--seed`. The seed initializes `numpy.random.default_rng` (PCG64). The initial field is i.i.d. U[0, 1): `Generator.random((W, H))`, uniform on the half-open interval `[0, 1)`. The note does not say whether `1` can occur. This generator is what matches the rounded seed-0 field from a quick numpy check run by the same Simulaciones agent (mean of `T` = 0.499411, std = 0.289). That check is not in this repo.
 
-2. **`k` defaults to 1.** The note writes `tanh(k * Δ)` and does not give `k`. The default `k = 1` is a choice of this implementation. It is not a claim that `tanh` is close to the identity: `tanh(1) ≈ 0.7616`. `k` is ignored when `f` is linear. It matters for the synchronous `tanh` rule when the product `α k` is near `4/3`, because that is the linear stability threshold derived below. At the note's `α = 0.2` this product crosses `4/3` at `k = (4/3) / 0.2 = 20/3 ≈ 6.667`. Pass `--k` or `k=` to use another value.
+2. **`k` defaults to 1.** The note writes `tanh(k * Δ)` and does not give `k`. The default `k = 1` is a choice of this implementation. It is not a claim that `tanh` is close to the identity: `tanh(1) ≈ 0.7616`. `k` is ignored when `f` is linear. Near a uniform field, `tanh(k Δ) = k Δ + O(Δ³)`, so the synchronous linearization has step `α k` in place of `α`. That linearization, not a proved bound on the nonlinear map, is why `α k` near `4/3` matters. At the note's `α = 0.2` the product crosses `4/3` at `k = (4/3) / 0.2 = 20/3 ≈ 6.667`. Pass `--k` or `k=` to use another value.
 
 3. **Asynchronous mode.** The note only specifies the synchronous double loop. `mode="async"` is an extension. One async step is defined here as **one random permutation of all `W*H` cells**: each cell is updated exactly once, in that order, **in place**. A cell updated later in the sweep sees the earlier updates. The permutation is drawn from the same generator as the initial field, after the field has been drawn, so the seed fixes both. "One step = `W*H` single-cell updates" is this permutation sweep, not sampling with replacement. That choice is not in the note.
 
@@ -92,13 +92,15 @@ For every real frequency, `λ ∈ [−1/2, 1]`. The code's `neighbor_mean` match
 g = 1 + α (λ − 1)
 ```
 
-The constant mode has `λ = 1` and `g = 1`, which is why the mean is fixed while the clamp is idle. Because `λ ≤ 1`, one has `g ≤ 1`. The other side, `g > −1`, is
+The constant mode has `λ = 1` and `g = 1`, which is why the mean is fixed while the clamp is idle. The step size in this derivation satisfies `α > 0`. At `α = 0` one has `g = 1` for every mode, so the field is frozen. For `α < 0` and `λ < 1`, the product `α (λ − 1)` is positive, so `g > 1` and every non-constant mode grows.
+
+For `α > 0`, `λ ≤ 1` gives `g ≤ 1`. The other side, `g > −1`, is
 
 ```
 α (1 − λ) < 2
 ```
 
-Since `λ ≥ −1/2`, this holds for every mode on every grid with `W, H ≥ 3` whenever `α < 4/3`. The note's `α = 0.2` is in that regime: every non-constant mode decays, and the run homogenizes.
+Since `λ ≥ −1/2`, this holds for every mode on every grid with `W, H ≥ 3` whenever `0 < α < 4/3`. The note's `α = 0.2` is in that regime: every non-constant mode decays, and the run homogenizes. The bound `α < 4/3` is proved here for linear `f`, unclamped. It is not a proved bound for `tanh`.
 
 The bound is sharp when at least one side is even. The stripe of wavelength 2 along that side (frequency `π` in one coordinate and `0` in the other) has `λ = −1/2` and
 
@@ -131,17 +133,63 @@ At the marginal value `α = 4/3`, linear sync, seed 0, 100×100, 1000 steps: mea
 
 ### `tanh`
 
-Linearized about a uniform field, `tanh(k Δ) = k Δ + O(Δ³)`, so the same map has `α` replaced by `α k`. The unclamped synchronous linearization decays for `α k < 4/3`, is marginal at equality on an even-sided grid, and is unstable above it. A pure stripe of amplitude `10^−6` in this code matches that gain.
+Linearized about a uniform field, `tanh(k Δ) = k Δ + O(Δ³)`, so the same map has `α` replaced by `α k`. That replacement is a linearization valid only near a uniform field. It is not a proved bound for the nonlinear map. The unclamped synchronous linearization decays for `0 < α k < 4/3`, is marginal at equality on an even-sided grid, and is unstable above it. A pure stripe of amplitude `10^−6` in this code matches that gain. The bound `α < 4/3` above is proved for linear `f`, unclamped.
 
 The nonlinear `tanh` rule does not conserve the mean of `T`. On a one-spike field the change is visible in a single step.
 
-The saturated `tanh` oscillation is not always the clamp. Linear `f` has an unbounded response, so the growing mode keeps going until the clamp. `tanh` is bounded by 1, so it can stop the growth first. Measured, seed 0, `100×100`, 1000 steps, `α = 0.2`, `k = 8` (`α k = 1.6`): mean tension `0.09585`, mean `|T(t)−T(t−2)|` about `6×10^−5`, mean `|T(t)−T(t−1)|` about `0.127`, and **zero** clamp activations. That period-2 state is still a step-size artifact. It is not the clamp-saturated state seen for linear `f` at `α = 1.5`.
+The saturated `tanh` oscillation is not always the clamp. Linear `f` has an unbounded response, so the growing mode keeps going until the clamp. `tanh` is bounded by 1, so it can stop the growth first. Measured, seed 0, `100×100`, 1000 steps, `α = 0.2`, `k = 8` (`α k = 1.6`): mean tension `0.095855`, mean `|T(t)−T(t−2)|` about `6.1×10^−5`, mean `|T(t)−T(t−1)|` about `0.127`, and **zero** clamp activations. That period-2 state is still a step-size artifact. It is not the clamp-saturated state seen for linear `f` at `α = 1.5`.
 
-### Async, measured only
+#### Period-2 stripe
 
-The theorem above is for the synchronous map. It does not say what the in-place sweep does.
+Take a pure stripe `T = μ + A σ` with `σ = (−1)^y`, on an even height, and assume the clamp stays idle. Two of the eight neighbours share the cell's sign (the horizontal pair). The other six have the opposite sign. Their mean is `μ − (A/2) σ`, so
 
-Linear async, seeds 0 and 1, `100×100`, 1000 steps: mean tension at step 1000 is below `10^−3` for every sampled `α` in `{0.2, 1, 4/3, 1.5, 1.9}`. At `α = 1.5`, where sync sits near tension `0.73`, async seed 0 is at about `2×10^−6`. At `α = 2.2` and `α = 2.5` those async runs do not homogenize: mean tension stays near `0.33` and `0.41`, and the clamp fires on a large fraction of updates. That is a numerical finding. There is no async stability theorem in this file.
+```
+Δ = −(3/2) A σ
+tanh(k Δ) = −σ tanh(3 k A / 2)
+T' = μ + σ [ A − α tanh(3 k A / 2) ]
+```
+
+A period-2 cycle flips the stripe, `T' = μ − A σ`, which is the scalar equation
+
+```
+2A = α tanh(3 k A / 2)
+```
+
+`A = 0` is always a root. A nonzero root exists only when the small-amplitude gain is expanding, `α k > 4/3`. The nonzero root is the amplitude of the cycle. It is set by `α` and `k` (the step), not by a separate physical length. The factor `3/2` is this stencil. For `α = 0.05`, `k = 8` (`α k = 0.4`) the only root is `A = 0`. For `α = 0.2`, `k = 8` the nonzero root is `A = 0.065856966`. One synchronous step of that stripe, `μ = 0.5`, returns the flipped stripe with the clamp idle (checked in `tests/test_rule.py`).
+
+Mean tension of the pure stripe counts four pair directions. Horizontal pairs differ by 0. Vertical pairs and both diagonals differ by `2A`. The mean is `1.5 A = 0.098785`. The random-field run quoted above measures `0.095855`. Those are different fields: the random initial condition is not one global stripe, and domain walls remain. The predicted pure-stripe tension is `0.098785`; the measured random-field tension is `0.095855`.
+
+### Async energy
+
+The synchronous theorem does not say what the in-place sweep does. The following is a separate derivation for one cell, neighbours held fixed, and it was checked against `moore_pair_energy` in the tests.
+
+Let `E = (1/16) Σ (T_i − T_j)^2`, summed once over each undirected Moore pair (`4 W H` pairs). The factor `1/16` is part of the definition. `E` scales with the grid; it is not divided by the number of pairs. Updating cell `i` by `δ = T'_i − T_i` touches eight pairs and changes the sum of squares by `8 δ² − 16 δ Δ`, where `Δ` is that cell's neighbour excess. Dividing by 16 gives
+
+```
+dE = (1/2) δ² − δ Δ
+```
+
+in any order, because the identity uses only the field at the moment of the update.
+
+Unclamped linear response is `δ = α Δ`, so
+
+```
+dE = −α (1 − α/2) Δ²
+```
+
+exactly. This was checked, to roundoff, on a near-uniform 8×8 field at `α ∈ {0.2, 1.5, 1.99, 2, 2.05}`.
+
+The equality does **not** hold when the clamp shortens the step. Checked: a cell at `0.98` with neighbours at `0.2` (`Δ = −0.78`) and `α = 1.5` is sent to `0`. The unclamped formula gives `dE = −0.22815`. The actual change is `dE = −0.2842`. Same sign, different value.
+
+What does survive the clamp, for linear `f`, is an inequality. If the cell starts in `[0, 1]` and `α > 0`, the clipped step `δ` has the same sign as `Δ` and `|δ| ≤ α |Δ|`. Write `δ = β Δ` with `0 ≤ β ≤ α`. Then `dE = β (β/2 − 1) Δ²`. For `0 < α ≤ 2` one has `β ≤ 2`, so `dE ≤ 0` for every cell, in any order, including a shortened step. At `α = 2` the unclamped update has `dE = 0`. The endpoint is marginal: energy does not increase, and the field need not homogenize. For `0 < α < 2` a cell with `Δ ≠ 0` has `β = α` when the clamp is idle, and a strictly shorter positive `β` when the clamp only trims the step, so `dE < 0`. On this lattice a non-constant field has some `Δ ≠ 0`, so one full sweep strictly decreases `E`. `E = 0` only for a constant field.
+
+For `tanh`, `δ = α tanh(k Δ)` before the clamp. The inequality `|tanh u| ≤ |u|` gives `|δ| ≤ α k |Δ|`, and the clamp can only make `|δ|` smaller. So the same `β (β/2 − 1)` expression is `≤ 0` whenever `0 < α k ≤ 2`. A small step with `α k > 2` can increase `E` (checked at `α = 0.2`, `k = 12`). This one-cell bound is not a bound on the synchronous map. The synchronous period-2 stripe above sits at `α k = 1.6`.
+
+Seeds 0 and 1, linear async, 32×32, 200 steps: at `α = 1.99` mean tension falls from about `0.33` to about `0.025` and `E` falls below 1; at `α = 2.05` mean tension stays near `0.23` and `E` stays above 10. The same split is visible on 100×100 by step 200 (seed 0: tension about `0.024` at `α = 1.99`, about `0.230` at `α = 2.05`). This is the content of the energy argument. It is not a claim that every `α ≤ 2` run has already homogenized, and it is not a claim that the equality `dE = −α (1 − α/2) Δ²` survives the clamp.
+
+The range `0 < α < 2` is the same numerical range as the relaxation parameter in the Ostrowski–Reich theorem for successive over-relaxation, with a Jacobi sweep on one side and an in-place sweep on the other. That is an analogy. Nothing above is quoted from that theorem.
+
+Linear async, seeds 0 and 1, `100×100`, 1000 steps, remain as previously measured: mean tension at step 1000 is below `10^−3` for every sampled `α` in `{0.2, 1, 4/3, 1.5, 1.9}`. At `α = 1.5`, where sync sits near tension `0.73`, async seed 0 is at about `2×10^−6`. At `α = 2.2` and `α = 2.5` those async runs do not homogenize: mean tension stays near `0.33` and `0.41`, and the clamp fires on a large fraction of updates.
 
 ## Mean tension
 
@@ -153,7 +201,7 @@ mean |T_i − T_j|
 
 over undirected neighbour pairs. With the Moore neighbourhood those pairs are the horizontal edges, the vertical edges, and both diagonal directions, on the periodic grid. Each pair is counted once. There are `4 * W * H` of them.
 
-The orthogonal pairs alone (no diagonals) are a different observable. Both round to 0.337 at seed 0, step 0. At step 1000 they do not agree: full Moore pairs give about `3.99×10^−4`, orthogonal pairs about `3.27×10^−4`. A quick independent numpy check run by the Simulaciones agent, not in this repo, quoted `~0.00033` at step 1000. That figure matches the orthogonal subset. The mean and the standard deviation of `T` match the Moore update. This code uses the full Moore pair set, because that is the neighbourhood of the rule.
+The orthogonal pairs alone (no diagonals) are a different observable. Both round to 0.337 at seed 0, step 0. At step 1000 they do not agree: full Moore pairs give about `3.99×10^−4`, orthogonal pairs about `3.27×10^−4`. A quick numpy check run by the same Simulaciones agent, not in this repo, quoted `~0.00033` at step 1000. That figure matches the orthogonal subset. The mean and the standard deviation of `T` match the Moore update. This code uses the full Moore pair set, because that is the neighbourhood of the rule.
 
 ## Diagnostics
 
@@ -165,11 +213,19 @@ CSV columns, one row per step including step 0:
 | `mean_T`, `std_T` | population mean and standard deviation of `T` |
 | `mean_abs_d1` | mean over cells of `|T(t) − T(t−1)|`. `nan` at step 0 |
 | `mean_abs_d2` | mean over cells of `|T(t) − T(t−2)|`. `nan` at steps 0 and 1 |
-| `xi` | spectral length below |
+| `spectral_length` | spectral length below |
 
 A period-2 oscillation has `mean_abs_d2` near 0 while `mean_abs_d1` stays large. Slow decay of a smooth field has `mean_abs_d2` about twice `mean_abs_d1`. At α = 0.2, seed 0, sync, step 1000, those two means are about `4.3×10^−6` and `8.7×10^−6`.
 
-`ξ` is `2π / sqrt(⟨k²⟩_S)`. `S` is the squared modulus of the FFT of the demeaned field, `k` is the angular wave number in radians per cell, and the average skips the zero mode. A constant field returns `nan`. A pure cosine of wavelength `L` cells returns `L`. The stripe `(−1)^y` on an even height returns `2`. At α = 0.2, seed 0, sync, `ξ` goes from about `2.43` at step 0 to about `61.8` at step 1000.
+`spectral_length` is `2π / sqrt(⟨k²⟩_S)`. `S` is the squared modulus of the FFT of the demeaned field, `k` is the angular wave number in radians per cell, and the average skips the zero mode. A constant field returns `nan`. A pure cosine of wavelength `L` cells returns `L`. The stripe `(−1)^y` on an even height returns `2`.
+
+Three limits of this definition:
+
+- A flat spectrum (the white-noise floor) has `⟨k²⟩ = 2π²/3` in the large-grid limit, so the length is `√6 ≈ 2.449`. On a 256×256 frequency grid the same average of `k²`, excluding the zero mode, is already within `0.1%` of `√6`. Seed 0 at step 0, which is one white draw, measures about `2.428`.
+- The period-2 stripe returns `2`.
+- Domain walls do not turn the length into a domain size, and they do not automatically pin it at one cell. The `k²` moment weights the high-`k` interfacial tail (the Porod tail; Bray, Adv. Phys. 43, 357, 1994). For a fine period-2 pattern that tail is the stripe itself, so the length stays on the lattice scale: the `tanh` `k = 8` seed-0 field at step 1000 has spectral length `2.029`, next to the pure stripe's `2`. An isolated wall is a different spectrum. Two blocks on an `N×N` grid give a length that grows like `√N`: about `10.69` at `N = 32` and about `21.35` at `N = 128`. That is not the lattice scale, and it is not the domain width. The Porod tail dominates the moment, and the length that follows is still set by how dense the walls are.
+
+At α = 0.2, seed 0, sync, linear `f`, the length goes from about `2.43` at step 0 to about `61.8` at step 1000.
 
 The CLI also writes a histogram of the final field: 20 equal bins of `[0, 1]`.
 
@@ -191,6 +247,7 @@ Rounded as in the Simulaciones agent's check (not in this repo): mean tension `0
 python -m sim --seed 0
 python -m sim.figure
 python -m sim.sweep
+python -m sim.reproduce
 ```
 
 The first command writes, under `outputs/`:
@@ -202,4 +259,11 @@ The first command writes, under `outputs/`:
 
 The second command writes `docs/figures/mean_tension_sync_vs_async.png`: mean tension against step on log-log axes, synchronous and asynchronous, seeds 0 and 1, linear `f`, α = 0.2. Step 0 is omitted because a logarithmic axis cannot show it.
 
-The third command writes `docs/figures/alpha_sweep_stability.png`: mean tension at step 1000 against `α` (linear `f`, sync and async, seeds 0 and 1) and against `α k` (`tanh`, sync). Seeds are fixed. The vertical line is `α = 4/3`.
+The third command writes `docs/figures/alpha_sweep_stability.png`: mean tension at step 1000 against `α` (linear `f`, sync and async, seeds 0 and 1) and against `α k` (`tanh`, sync). Seeds are fixed. The dotted vertical line is `α = 4/3`. Panels that include an async series also have a dash-dot line at `α = 2`. The synchronous family that varies `k` at `α = 0.2` is drawn in green and purple, not in the async orange. Non-positive values are omitted; they are not placed at `1e-16`.
+
+`python -m sim.reproduce` is command version `v0.1`. With no flag it runs both of the following, and either can be selected alone:
+
+- `--tanh-k8`: synchronous `tanh`, `k = 8`, `α = 0.2`, seed 0, 100×100, 1000 steps, written under `outputs/reproduce/`.
+- `--sweep`: the alpha-sweep figure above, seeds 0 and 1.
+
+The same `tanh` run is also `python -m sim --seed 0 --f tanh --k 8 --alpha 0.2`.
