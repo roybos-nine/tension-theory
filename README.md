@@ -43,6 +43,8 @@ graph TD
 
 ## The ten postulates
 
+**Not validated by Roybos** (sin validar por Roybos). The list below is unvalidated v0.1 text. It is not a result of rule v0.1.
+
 The entire framework rests on ten postulates and nothing else — no assumptions about continuity, probability, or geometry:
 
 1. **Finite Memory** — no global, lossless, or infinite memory exists.
@@ -60,9 +62,11 @@ The entire framework rests on ten postulates and nothing else — no assumptions
 
 **Not metaphor.** The objective is formalization. If the model is wrong, it should fail mathematically. If it is correct, it should produce testable differences from existing frameworks. Validity here means executable prediction, not elegance.
 
-**Not a cellular automaton.** CAs run fixed rules on a fixed lattice with a global clock. TT graphs have dynamic, cost-aware topology, no global tape, and no global synchronization requirement.
+**What `sim/` is.** The code in `sim/` is a cellular automaton: a fixed periodic lattice, a Moore neighbourhood, and a clock that is either one global synchronous step or one random sequential sweep.
 
-**Not finished.** Version 0.1 establishes structural emergence. The quantitative mapping to known physics is the open program, and the line between the two is kept explicit throughout.
+**Not validated by Roybos** (sin validar por Roybos). Unvalidated v0.1 text describes a different model: dynamic, cost-aware graphs, no global tape, and no global clock. That description does not apply to `sim/`.
+
+**Not finished.** **Not validated by Roybos** (sin validar por Roybos): the v0.1 sentence "Version 0.1 establishes structural emergence" is unvalidated text. The quantitative mapping to known physics is an open question in that text.
 
 ## Simulator
 
@@ -71,15 +75,24 @@ The entire framework rests on ten postulates and nothing else — no assumptions
 ```bash
 python -m sim --seed 0
 python -m sim.figure
+python -m sim.sweep
 ```
 
-`python -m sim --seed 0` writes a CSV of mean tension, mean of `T`, and std of `T` at each step, plus PNGs of the final grid and of mean tension against step. Parameters, including choices the note does not specify, are in `docs/PARAMETERS.md`.
+`python -m sim --seed 0` writes a CSV and three PNGs. The CSV columns are step, mean tension, mean of `T`, std of `T`, mean `|T(t) − T(t−1)|`, mean `|T(t) − T(t−2)|`, and a spectral length `ξ`. The PNGs are the final grid, mean tension against step, and a histogram of the final field. `python -m sim.sweep` writes the stability figure. Parameters, including choices the note does not specify, are in `docs/PARAMETERS.md`.
+
+## First experimental observation
+
+**Pending Roybos's decision.** This old claim is not reproduced by rule v0.1 at α = 0.2.
+
+The previous README said that synchronous ordering produces oscillating "breathing" forms and asynchronous ordering produces frozen stable structures. That sentence referred to `scripts/tension_graph.py`, which is not in this repository. At α = 0.2, rule v0.1 shows neither behaviour: both schedules homogenize. See Result of rule v0.1.
+
+The synchronous rule does oscillate for linear `f` when α > 4/3, and for `tanh` when the product αk is above that value in the linearization about a uniform field. That oscillation is a numerical-instability artifact of the discrete step, not a physical form, and it does not confirm the old sentence. Whether to delete the old sentence or keep it as a claim is pending Roybos's decision.
 
 ## Result of rule v0.1
 
 This is a property of this rule, not a physical prediction.
 
-The note's linear response `f(Δ) = Δ`, with `α = 0.2` on a 100×100 periodic Moore grid and a uniform initial field, homogenizes the grid. Mean tension — the mean of `|T_i − T_j|` over Moore neighbour pairs — falls by about three orders of magnitude in 1000 steps, and the final field is nearly flat. Synchronous updates and asynchronous random-order sweeps do the same thing. The asynchronous sweep reduces mean tension a little faster. Neither run produces oscillating forms or frozen spatial structure.
+At the note's α = 0.2, with linear `f(Δ) = Δ`, a 100×100 periodic Moore grid, and an i.i.d. U[0, 1) initial field, the grid homogenizes. Mean tension — the mean of `|T_i − T_j|` over Moore neighbour pairs — falls by about three orders of magnitude in 1000 steps, and the final field is nearly flat. Synchronous updates and asynchronous random-order sweeps both do this. The asynchronous sweep reduces mean tension a little faster. At step 1000 for seed 0, sync, mean `|T(t) − T(t−1)|` is about `4×10^−6` and mean `|T(t) − T(t−2)|` is about twice that, which is slow decay rather than a period-2 oscillation. The spectral length ξ grows from about 2.4 cells to about 62 while the standard deviation of `T` falls from 0.289 to 0.0057: the leftover variation is a long-wavelength ripple of small amplitude.
 
 Mean tension for linear `f`:
 
@@ -94,12 +107,24 @@ Seed 0, synchronous: std of `T` goes from 0.2891 to 0.005673, and the mean of `T
 
 ![Mean tension vs step, sync and async, seeds 0 and 1](docs/figures/mean_tension_sync_vs_async.png)
 
+### Synchronous stability
+
+This is a proved property of the unclamped synchronous map, not a physical prediction. A Fourier mode whose Moore-average symbol is λ is multiplied each step by `g = 1 + α_eff (λ − 1)`. For linear `f`, `α_eff = α`. For `f(Δ) = tanh(k Δ)`, the derivative at 0 is `k`, so the linearization about a uniform field has `α_eff = α k`. Every symbol satisfies `λ ≥ −1/2`, so every non-constant mode decays when `α_eff < 4/3`. The note's α = 0.2 with linear `f` is inside that regime. The bound is sharp when a side length is even: the wavelength-2 stripe has `λ = −1/2`, `g = −1` at `α_eff = 4/3`, and `|g| > 1` above it. The derivation is in `docs/PARAMETERS.md`.
+
+At `α_eff = 4/3` the stripe does not grow and does not decay. Linear sync, seed 0, 100×100, 1000 steps, has mean tension about 0.0060, mean `|T(t) − T(t−1)|` about 0.0069, and mean `|T(t) − T(t−2)|` about `6×10^−6`: a small period-2 left by the initial field. Above that threshold the growing stripe runs into a bound and the measured runs become a large period-2 oscillation. That oscillation is a numerical-instability artifact of the rule (the discrete step has left the range where the linear map contracts), not a physical form.
+
+For linear `f` at α = 1.5, seeds 0 and 1, 100×100, 1000 steps, mean tension is 0.729 and 0.734. The field sits on the clamp: mean `|T(t) − T(t−1)|` is about 0.96 and mean `|T(t) − T(t−2)|` is about `2×10^−4`. For `tanh`, the oscillation is not always stopped by the clamp. At α = 0.2, `k = 8` (`αk = 1.6`), seed 0, 100×100, 1000 steps, the run is a period-2 state with mean tension 0.096 and zero clamp activations. The sweep is `docs/figures/alpha_sweep_stability.png`.
+
+Asynchronous linear updates are outside that theorem. On seeds 0 and 1, 100×100, 1000 steps, mean tension at step 1000 is below `10^−3` for every sampled α in {0.2, 1, 4/3, 1.5, 1.9}, including values where the synchronous rule period-2 oscillates. At α = 2.2 and α = 2.5 those async runs do not homogenize: mean tension stays near 0.33 and 0.41. No stability theorem is claimed for the async rule. The async update implemented here does not conserve the mean of `T`. A conservative asynchronous scheme would be a separate decision; this code does not add one.
+
+![Mean tension at step 1000 against alpha and alpha k](docs/figures/alpha_sweep_stability.png)
+
 ## Open problems
 
 In priority order:
 
 1. **Formal specification of τ.** The tension function must be local, respect finite memory, and reproduce known limits when coarse-grained. Any candidate must pass all three conditions and run in the reference implementation before being considered serious.
-2. **Quantitative, falsifiable predictions.** Structural emergence is established; numbers are not. This is the standard the framework holds itself to.
+2. **Quantitative, falsifiable predictions.** **Not validated by Roybos** (sin validar por Roybos): the v0.1 sentence "Structural emergence is established; numbers are not." Rule v0.1 at α = 0.2 produces a field that homogenizes, not a persistent structure (see Result of rule v0.1).
 3. **Bell inequality violations.** TT's stored-correlations account of entanglement faces genuine pressure from Bell. This is treated as a live threat to the framework, not a solved issue.
 4. **Emergence thresholds.** At what graph sizes and constraint regimes do stable forms reliably appear?
 
@@ -117,7 +142,8 @@ These are conceptual, not derived. They become claims only when they produce cal
 
 - `sim/` — lattice rule from the Notion note *Tension Game of Life v0.1*
 - `docs/PARAMETERS.md` — parameters of that rule, including choices the note does not specify
-- `docs/figures/mean_tension_sync_vs_async.png` — mean tension, sync vs async, seeds 0 and 1
+- `docs/figures/mean_tension_sync_vs_async.png` — mean tension, sync vs async, seeds 0 and 1, α = 0.2
+- `docs/figures/alpha_sweep_stability.png` — mean tension at step 1000 against α and αk
 - `tests/` — pytest suite
 - `index.html` — bundled site
 - `Tension_Theory_The_Theory_of_Everything_-_Paper_v0.1.pdf` — PDF file stored in the repo

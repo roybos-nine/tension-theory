@@ -9,6 +9,7 @@ import argparse
 from pathlib import Path
 
 import matplotlib
+import numpy as np
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -38,8 +39,18 @@ def main(argv: list[str] | None = None) -> None:
         )
     )
     parser.add_argument("--seed", type=int, required=True, help="RNG seed (required).")
-    parser.add_argument("--width", type=int, default=W_DEFAULT, help="Grid width W.")
-    parser.add_argument("--height", type=int, default=H_DEFAULT, help="Grid height H.")
+    parser.add_argument(
+        "--width",
+        type=int,
+        default=W_DEFAULT,
+        help="Grid width W. Must be >= 3.",
+    )
+    parser.add_argument(
+        "--height",
+        type=int,
+        default=H_DEFAULT,
+        help="Grid height H. Must be >= 3.",
+    )
     parser.add_argument("--alpha", type=float, default=ALPHA_DEFAULT, help="Response speed α.")
     parser.add_argument(
         "--f",
@@ -88,24 +99,42 @@ def main(argv: list[str] | None = None) -> None:
     csv_path = args.out / f"{stem}.csv"
     final_path = args.out / f"{stem}_final.png"
     tension_path = args.out / f"{stem}_tension.png"
+    hist_path = args.out / f"{stem}_hist.png"
     write_csv(csv_path, result)
     write_final_grid(final_path, result, seed=args.seed, mode=args.mode, f=args.f)
     write_tension_curve(tension_path, result, seed=args.seed, mode=args.mode, f=args.f)
+    write_histogram(hist_path, result, seed=args.seed, mode=args.mode, f=args.f)
     print(csv_path)
     print(final_path)
     print(tension_path)
+    print(hist_path)
+
+
+def _format_float(value: float) -> str:
+    if not np.isfinite(value):
+        return "nan"
+    return f"{value:.16g}"
 
 
 def write_csv(path: Path, result: SimulationResult) -> None:
-    """Write one row per recorded step, including the initial field at step 0."""
+    """Write one row per recorded step, including the initial field at step 0.
 
-    lines = ["step,mean_tension,mean_T,std_T\n"]
+    ``mean_abs_d1`` and ``mean_abs_d2`` are NaN until that lag exists.
+    """
+
+    header = (
+        "step,mean_tension,mean_T,std_T,mean_abs_d1,mean_abs_d2,xi\n"
+    )
+    lines = [header]
     for index in range(result.step.size):
         lines.append(
             f"{int(result.step[index])},"
-            f"{result.mean_tension[index]:.16g},"
-            f"{result.mean_T[index]:.16g},"
-            f"{result.std_T[index]:.16g}\n"
+            f"{_format_float(result.mean_tension[index])},"
+            f"{_format_float(result.mean_T[index])},"
+            f"{_format_float(result.std_T[index])},"
+            f"{_format_float(result.mean_abs_d1[index])},"
+            f"{_format_float(result.mean_abs_d2[index])},"
+            f"{_format_float(result.xi[index])}\n"
         )
     path.write_text("".join(lines))
 
@@ -131,6 +160,26 @@ def write_final_grid(path: Path, result: SimulationResult, *, seed: int, mode: s
         f"values in [{grid.min():.4f}, {grid.max():.4f}] shown on [0, 1]"
     )
     fig.colorbar(image, ax=ax, label="T")
+    fig.tight_layout()
+    fig.savefig(path, dpi=140)
+    plt.close(fig)
+
+
+def write_histogram(path: Path, result: SimulationResult, *, seed: int, mode: str, f: str) -> None:
+    """Histogram of the final field on 20 equal bins of [0, 1]."""
+
+    fig, ax = plt.subplots(figsize=(6.2, 4.2))
+    ax.hist(
+        result.grid.ravel(),
+        bins=np.linspace(0.0, 1.0, 21),
+        color="#0072B2",
+        edgecolor="white",
+        linewidth=0.4,
+    )
+    ax.set_xlim(0.0, 1.0)
+    ax.set_xlabel("T")
+    ax.set_ylabel("cells")
+    ax.set_title(f"final histogram, rule v0.1, {mode}, f={f}, seed {seed}")
     fig.tight_layout()
     fig.savefig(path, dpi=140)
     plt.close(fig)

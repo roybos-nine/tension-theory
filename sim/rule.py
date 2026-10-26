@@ -40,6 +40,15 @@ K_DEFAULT = 1.0
 STEPS_DEFAULT = 1000
 MODE_DEFAULT = MODE_SYNC
 
+# Below this side length the shifts +1 and -1 land on the same cell, so the
+# eight Moore offsets are not eight distinct cells.
+MIN_SIDE = 3
+
+# Unclamped synchronous linear rule, grid with an even side: the Moore
+# average has λ_min = -1/2, and non-constant modes decay iff
+# alpha < 2 / (1 - λ_min) = 4/3. Derived in docs/PARAMETERS.md.
+SYNC_EVEN_GRID_ALPHA_LIMIT = 4.0 / 3.0
+
 
 @dataclass(frozen=True)
 class SimulationResult:
@@ -51,6 +60,12 @@ class SimulationResult:
     ``mean_T`` and ``std_T`` are the population mean and standard deviation
     of the field (``ddof=0``). ``clamp_activations`` counts values that fell
     outside ``[0, 1]`` before clipping, summed over every cell update.
+
+    ``mean_abs_d1[t]`` is the mean of ``|T(t) − T(t−1)|`` over cells, and
+    ``mean_abs_d2[t]`` is the mean of ``|T(t) − T(t−2)|``. Both are NaN
+    until the lag exists. A period-2 oscillation has ``mean_abs_d2`` near 0
+    while ``mean_abs_d1`` stays large. ``xi`` is a length, in cells, from
+    the power spectrum; see ``correlation_length``.
     """
 
     grid: np.ndarray
@@ -58,6 +73,9 @@ class SimulationResult:
     mean_tension: np.ndarray
     mean_T: np.ndarray
     std_T: np.ndarray
+    mean_abs_d1: np.ndarray
+    mean_abs_d2: np.ndarray
+    xi: np.ndarray
     clamp_activations: int
 
 
@@ -82,8 +100,9 @@ def run(
         first; in async mode the same generator then draws each step's
         permutation. There is no default.
     W, H :
-        Grid width and height. Source default is 100 × 100. The array has
-        shape ``(W, H)`` and is indexed ``T[x, y]``, matching the note.
+        Grid width and height. Source default is 100 × 100. Both must be
+        >= 3 so the eight Moore offsets are eight distinct cells. The array
+        has shape ``(W, H)`` and is indexed ``T[x, y]``, matching the note.
     alpha :
         Response speed. Source value is 0.2.
     f :
@@ -101,8 +120,8 @@ def run(
     """
 
     seed = _require_nonnegative_int("seed", seed)
-    W = _require_positive_int("W", W)
-    H = _require_positive_int("H", H)
+    W = _require_grid_axis("W", W)
+    H = _require_grid_axis("H", H)
     alpha = _require_finite_float("alpha", alpha)
     k = _require_finite_float("k", k)
     steps = _require_nonnegative_int("steps", steps)
@@ -120,12 +139,25 @@ def run(
     mean_tension = np.empty(steps + 1, dtype=np.float64)
     mean_T = np.empty(steps + 1, dtype=np.float64)
     std_T = np.empty(steps + 1, dtype=np.float64)
+    mean_abs_d1 = np.full(steps + 1, np.nan, dtype=np.float64)
+    mean_abs_d2 = np.full(steps + 1, np.nan, dtype=np.float64)
+    xi = np.empty(steps + 1, dtype=np.float64)
     clamps = 0
+    previous = None
+    previous2 = None
 
     for t in range(steps + 1):
         mean_tension[t], mean_T[t], std_T[t] = field_stats(field)
+        if previous is not None:
+            mean_abs_d1[t] = float(np.mean(np.abs(field - previous)))
+        if previous2 is not None:
+            mean_abs_d2[t] = float(np.mean(np.abs(field - previous2)))
+        xi[t] = correlation_length(field)
         if t == steps:
             break
+        # Copy before the update. Async steps edit the array in place.
+        previous2 = previous
+        previous = field.copy()
         if mode == MODE_SYNC:
             field, n_clamp = step_sync(field, alpha=alpha, f=f, k=k)
         else:
@@ -138,6 +170,9 @@ def run(
         mean_tension=mean_tension,
         mean_T=mean_T,
         std_T=std_T,
+        mean_abs_d1=mean_abs_d1,
+        mean_abs_d2=mean_abs_d2,
+        xi=xi,
         clamp_activations=clamps,
     )
 
@@ -156,8 +191,7 @@ def step_sync(
     """
 
     field = np.asarray(T, dtype=np.float64)
-    if field.ndim != 2:
-        raise ValueError("T must have shape (W, H)")
+    _require_moore_grid(field)
     alpha = _require_finite_float("alpha", alpha)
     k = _require_finite_float("k", k)
     delta = neighbor_mean(field) - field
@@ -215,6 +249,7 @@ def apply_async_sweep(
     field = np.asarray(T)
     if field.ndim != 2 or field.dtype != np.float64 or not field.flags.c_contiguous:
         raise ValueError("T must be a C-contiguous float64 array of shape (W, H)")
+    _require_moore_grid(field)
     alpha = _require_finite_float("alpha", alpha)
     k = _require_finite_float("k", k)
     if f not in (F_LINEAR, F_TANH):
@@ -288,6 +323,38 @@ def mean_tension(T: np.ndarray) -> float:
     return total / (len(PAIR_SHIFTS) * field.size)
 
 
+def correlation_length(T: np.ndarray) -> float:
+    """Spectral length ξ = 2π / sqrt(⟨k²⟩_S), in cell units.
+
+    S is the squared modulus of the FFT of the demeaned field. k is the
+    angular wave number in radians per cell, and the average skips the
+    zero mode. The review that asked for a spatial scale did not fix a
+    formula; this is the definition used here. A constant field has no
+    scale and returns NaN. A pure cosine of wavelength L returns L. The
+    stripe (−1)^y on an even height returns 2.
+    """
+
+    field = np.asarray(T, dtype=np.float64)
+    _require_moore_grid(field)
+    centered = field - field.mean()
+    if float(np.mean(centered * centered)) == 0.0:
+        return math.nan
+    spectrum = np.fft.fft2(centered)
+    power = spectrum.real * spectrum.real + spectrum.imag * spectrum.imag
+    power = np.array(power, copy=True)
+    power[0, 0] = 0.0
+    total = float(power.sum())
+    if total == 0.0:
+        return math.nan
+    kx = (2.0 * math.pi) * np.fft.fftfreq(field.shape[0])
+    ky = (2.0 * math.pi) * np.fft.fftfreq(field.shape[1])
+    wavenumber_sq = kx[:, None] ** 2 + ky[None, :] ** 2
+    mean_k2 = float(np.sum(power * wavenumber_sq) / total)
+    if mean_k2 <= 0.0:
+        return math.nan
+    return (2.0 * math.pi) / math.sqrt(mean_k2)
+
+
 def field_stats(T: np.ndarray) -> tuple[float, float, float]:
     """Return ``(mean_tension, mean of T, population std of T)``."""
 
@@ -305,11 +372,24 @@ def apply_f(delta: np.ndarray, f: str, k: float) -> np.ndarray:
     raise ValueError(f"f must be {F_LINEAR!r} or {F_TANH!r}, got {f!r}")
 
 
-def _require_positive_int(name: str, value: object) -> int:
+def _require_grid_axis(name: str, value: object) -> int:
     number = _require_int(name, value)
-    if number < 1:
-        raise ValueError(f"{name} must be >= 1")
+    if number < MIN_SIDE:
+        raise ValueError(
+            f"{name} must be >= {MIN_SIDE} so the eight Moore offsets are distinct cells"
+        )
     return number
+
+
+def _require_moore_grid(field: np.ndarray) -> None:
+    if field.ndim != 2:
+        raise ValueError("T must have shape (W, H)")
+    width, height = (int(field.shape[0]), int(field.shape[1]))
+    if width < MIN_SIDE or height < MIN_SIDE:
+        raise ValueError(
+            f"W and H must be >= {MIN_SIDE} so the eight Moore offsets are distinct "
+            f"cells (got {width} x {height})"
+        )
 
 
 def _require_nonnegative_int(name: str, value: object) -> int:
