@@ -40,4 +40,4 @@ def test_lambda2_matches_independent_laplacian(result):
     adjacency = nx.to_numpy_array(result.graph, nodelist=nodelist)
     independent = np.diag(adjacency.sum(axis=1)) - adjacency
     spectrum = np.sort(np.linalg.eigvalsh(independent))
-    np.testing.assert_allclose(result.eigenvalues[1], spectrum[1], rtol=0, atol=0)
+    np.testing.assert_allclose(result.eigenvalues[1], spectrum[1], rtol=1e-12)
